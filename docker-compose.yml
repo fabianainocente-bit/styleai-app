@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Banco de dados MySQL
+  db:
+    image: mysql:8.0
+    container_name: styleai-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: styleai_root_password
+      MYSQL_DATABASE: styleai
+      MYSQL_USER: styleai_user
+      MYSQL_PASSWORD: styleai_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - styleai-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Aplicação StyleAI
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: styleai-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "mysql://styleai_user:styleai_password@db:3306/styleai"
+      JWT_SECRET: "seu-secret-super-seguro-aqui-min-32-chars"
+      FAL_KEY: "${FAL_KEY}"
+      NODE_ENV: "production"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./client/public:/app/client/public
+
+volumes:
+  styleai-db-data:
